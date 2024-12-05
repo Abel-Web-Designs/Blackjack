@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2d3e50;
+            color: white;
+            text-align: center;
+        }
+        .game-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            background-color: #34495e;
+        }
+        h1 {
+            font-size: 36px;
+            margin-bottom: 30px;
+        }
+        .hand {
+            margin: 20px;
+        }
+        .card {
+            display: inline-block;
+            width: 60px;
+            height: 80px;
+            background-color: #fff;
+            color: black;
+            text-align: center;
+            font-size: 18px;
+            border-radius: 5px;
+            margin: 5px;
+            line-height: 80px;
+        }
+        .controls {
+            margin-top: 30px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #1abc9c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #16a085;
+        }
+        .status {
+            font-size: 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>Blackjack Game</h1>
+
+    <div id="player-hand" class="hand">
+        <h2>Your Hand:</h2>
+    </div>
+    <div id="dealer-hand" class="hand">
+        <h2>Dealer's Hand:</h2>
+    </div>
+
+    <div class="controls">
+        <button onclick="hit()">Hit</button>
+        <button onclick="stand()">Stand</button>
+    </div>
+
+    <div id="status" class="status"></div>
+    <div id="score" class="status">
+        <p>Your Score: <span id="player-score">0</span></p>
+        <p>Dealer's Score: <span id="dealer-score">0</span></p>
+    </div>
+</div>
+
+<script>
+    // Card deck
+    const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
+    const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+    let deck = [];
+    let playerHand = [];
+    let dealerHand = [];
+    let playerScore = 0;
+    let dealerScore = 0;
+    let gameOver = false;
+
+    // Initialize deck and shuffle
+    function createDeck() {
+        deck = [];
+        for (let suit of suits) {
+            for (let value of values) {
+                deck.push({ suit, value });
+            }
+        }
+        deck = deck.sort(() => Math.random() - 0.5);  // Shuffle deck
+    }
+
+    // Deal a card
+    function dealCard(hand) {
+        const card = deck.pop();
+        hand.push(card);
+        return card;
+    }
+
+    // Card value calculation
+    function getCardValue(card) {
+        if (card.value === 'A') return 11;
+        if (['K', 'Q', 'J'].includes(card.value)) return 10;
+        return parseInt(card.value);
+    }
+
+    // Update score
+    function updateScores() {
+        playerScore = playerHand.reduce((total, card) => total + getCardValue(card), 0);
+        dealerScore = dealerHand.reduce((total, card) => total + getCardValue(card), 0);
+
+        // Adjust for Ace (if needed)
+        playerHand.filter(card => card.value === 'A').forEach(() => {
+            if (playerScore > 21) playerScore -= 10;
+        });
+        dealerHand.filter(card => card.value === 'A').forEach(() => {
+            if (dealerScore > 21) dealerScore -= 10;
+        });
+
+        document.getElementById('player-score').textContent = playerScore;
+        document.getElementById('dealer-score').textContent = dealerScore;
+    }
+
+    // Render cards
+    function renderHand(hand, elementId) {
+        const handElement = document.getElementById(elementId);
+        handElement.innerHTML = '';  // Clear the hand
+
+        hand.forEach(card => {
+            const cardElement = document.createElement('div');
+            cardElement.className = 'card';
+            cardElement.textContent = card.value + ' ' + card.suit.charAt(0);
+            handElement.appendChild(cardElement);
+        });
+    }
+
+    // Start a new game
+    function startGame() {
+        createDeck();
+        playerHand = [];
+        dealerHand = [];
+        gameOver = false;
+        document.getElementById('status').textContent = '';
+
+        // Deal initial cards
+        dealCard(playerHand);
+        dealCard(dealerHand);
+        dealCard(playerHand);
+        dealCard(dealerHand);
+
+        renderHand(playerHand, 'player-hand');
+        renderHand(dealerHand, 'dealer-hand');
+
+        updateScores();
+
+        // Dealer hides one card
+        document.getElementById('dealer-hand').children[1].style.visibility = 'hidden';
+    }
+
+    // Player hits
+    function hit() {
+        if (gameOver) return;
+
+        const card = dealCard(playerHand);
+        renderHand(playerHand, 'player-hand');
+        updateScores();
+
+        if (playerScore > 21) {
+            document.getElementById('status').textContent = 'You busted! Dealer wins.';
+            gameOver = true;
+        }
+    }
+
+    // Player stands
+    function stand() {
+        if (gameOver) return;
+
+        while (dealerScore < 17) {
+            const card = dealCard(dealerHand);
+            renderHand(dealerHand, 'dealer-hand');
+            updateScores();
+        }
+
+        if (dealerScore > 21) {
+            document.getElementById('status').textContent = 'Dealer busted! You win.';
+        } else if (playerScore > dealerScore) {
+            document.getElementById('status').textContent = 'You win!';
+        } else if (playerScore < dealerScore) {
+            document.getElementById('status').textContent = 'Dealer wins!';
+        } else {
+            document.getElementById('status').textContent = 'It\'s a tie!';
+        }
+
+        gameOver = true;
+    }
+
+    // Initialize game
+    startGame();
+</script>
+
+</body>
+</html>
