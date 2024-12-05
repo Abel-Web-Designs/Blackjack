@@ -28,14 +28,23 @@
         }
         .card {
             display: inline-block;
-            width: 60px;
-            height: 80px;
-            background-color: #fff;
+            width: 80px;
+            height: 120px;
+            background-color: white;
             color: black;
-            text-align: center;
-            font-size: 18px;
+            border: 2px solid #fff;
             border-radius: 5px;
+            text-align: center;
+            line-height: 120px;
             margin: 5px;
+            font-size: 24px;
+            position: relative;
+        }
+        .card .suit {
+            font-size: 20px;
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
         }
         .controls {
             margin-top: 30px;
@@ -105,11 +114,7 @@
         deck = [];
         for (let suit of suits) {
             for (let value of values) {
-                deck.push({
-                    suit,
-                    value,
-                    image: `https://deckofcardsapi.com/static/img/${value}${suit.charAt(0).toUpperCase() + suit.slice(1)}.png`
-                });
+                deck.push({ suit, value });
             }
         }
         deck = deck.sort(() => Math.random() - 0.5);  // Shuffle deck
@@ -146,18 +151,33 @@
         document.getElementById('dealer-score').textContent = dealerScore;
     }
 
-    // Render cards (now showing images)
+    // Render cards (with CSS styling)
     function renderHand(hand, elementId, hideSecondCard=false) {
         const handElement = document.getElementById(elementId);
         handElement.innerHTML = '';  // Clear the hand
 
         hand.forEach((card, index) => {
-            const cardElement = document.createElement('img');
+            const cardElement = document.createElement('div');
             cardElement.className = 'card';
-            cardElement.src = hideSecondCard && index === 1 ? 'https://deckofcardsapi.com/static/img/back.png' : card.image;
-            cardElement.alt = `${card.value} of ${card.suit}`;
+            cardElement.innerHTML = `
+                <div>${card.value}</div>
+                <div class="suit">${getSuitSymbol(card.suit)}</div>
+            `;
+            if (hideSecondCard && index === 1) {
+                cardElement.innerHTML = `<div>?</div>`;
+            }
             handElement.appendChild(cardElement);
         });
+    }
+
+    // Get suit symbol (♥, ♦, ♣, ♠)
+    function getSuitSymbol(suit) {
+        switch (suit) {
+            case 'hearts': return '♥';
+            case 'diamonds': return '♦';
+            case 'clubs': return '♣';
+            case 'spades': return '♠';
+        }
     }
 
     // Start a new game
