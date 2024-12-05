@@ -36,7 +36,6 @@
             font-size: 18px;
             border-radius: 5px;
             margin: 5px;
-            line-height: 80px;
         }
         .controls {
             margin-top: 30px;
@@ -55,6 +54,10 @@
         }
         .status {
             font-size: 20px;
+            margin-top: 20px;
+        }
+        #play-again {
+            display: none;
             margin-top: 20px;
         }
     </style>
@@ -81,11 +84,13 @@
         <p>Your Score: <span id="player-score">0</span></p>
         <p>Dealer's Score: <span id="dealer-score">0</span></p>
     </div>
+
+    <button id="play-again" onclick="startGame()">Play Again</button>
 </div>
 
 <script>
     // Card deck
-    const suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
+    const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
     const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
     let deck = [];
@@ -100,7 +105,7 @@
         deck = [];
         for (let suit of suits) {
             for (let value of values) {
-                deck.push({ suit, value });
+                deck.push({ suit, value, image: `https://deckofcardsapi.com/static/img/${value[0].toUpperCase() + value.slice(1)}_${suit[0].toUpperCase() + suit.slice(1)}.png` });
             }
         }
         deck = deck.sort(() => Math.random() - 0.5);  // Shuffle deck
@@ -137,15 +142,16 @@
         document.getElementById('dealer-score').textContent = dealerScore;
     }
 
-    // Render cards
-    function renderHand(hand, elementId) {
+    // Render cards (now showing images)
+    function renderHand(hand, elementId, hideSecondCard=false) {
         const handElement = document.getElementById(elementId);
         handElement.innerHTML = '';  // Clear the hand
 
-        hand.forEach(card => {
-            const cardElement = document.createElement('div');
+        hand.forEach((card, index) => {
+            const cardElement = document.createElement('img');
             cardElement.className = 'card';
-            cardElement.textContent = card.value + ' ' + card.suit.charAt(0);
+            cardElement.src = hideSecondCard && index === 1 ? 'https://deckofcardsapi.com/static/img/back.png' : card.image;
+            cardElement.alt = `${card.value} of ${card.suit}`;
             handElement.appendChild(cardElement);
         });
     }
@@ -157,6 +163,7 @@
         dealerHand = [];
         gameOver = false;
         document.getElementById('status').textContent = '';
+        document.getElementById('play-again').style.display = 'none';
 
         // Deal initial cards
         dealCard(playerHand);
@@ -165,12 +172,9 @@
         dealCard(dealerHand);
 
         renderHand(playerHand, 'player-hand');
-        renderHand(dealerHand, 'dealer-hand');
+        renderHand(dealerHand, 'dealer-hand', true);
 
         updateScores();
-
-        // Dealer hides one card
-        document.getElementById('dealer-hand').children[1].style.visibility = 'hidden';
     }
 
     // Player hits
@@ -184,6 +188,7 @@
         if (playerScore > 21) {
             document.getElementById('status').textContent = 'You busted! Dealer wins.';
             gameOver = true;
+            document.getElementById('play-again').style.display = 'inline';
         }
     }
 
@@ -191,6 +196,10 @@
     function stand() {
         if (gameOver) return;
 
+        // Reveal second dealer card
+        renderHand(dealerHand, 'dealer-hand');
+
+        // Dealer plays
         while (dealerScore < 17) {
             const card = dealCard(dealerHand);
             renderHand(dealerHand, 'dealer-hand');
@@ -208,6 +217,7 @@
         }
 
         gameOver = true;
+        document.getElementById('play-again').style.display = 'inline';
     }
 
     // Initialize game
