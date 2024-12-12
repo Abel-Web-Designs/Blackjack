@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2d3e50;
+            color: white;
+            text-align: center;
+        }
+        .game-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            background-color: #34495e;
+        }
+        h1 {
+            font-size: 36px;
+            margin-bottom: 30px;
+        }
+        .hand {
+            margin: 20px;
+            position: relative; /* To allow stacking of cards */
+            height: 150px; /* Fixed height for card stack */
+        }
+        .card {
+            position: absolute; /* To stack cards */
+            transition: transform 0.3s ease;
+        }
+        .card img {
+            width: 80px;
+            height: 120px;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+        }
+        .card:nth-child(n) {
+            left: calc((var(--card-index) - 1) * 30px); /* Adjust card stacking */
+            z-index: var(--card-index);
+        }
+        .controls {
+            margin-top: 30px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #1abc9c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #16a085;
+        }
+        .status {
+            font-size: 20px;
+            margin-top: 20px;
+        }
+        #play-again {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>Blackjack Game</h1>
+
+    <div id="player-hand" class="hand">
+        <h2>Your Hand:</h2>
+    </div>
+    <div id="dealer-hand" class="hand">
+        <h2>Dealer's Hand:</h2>
+    </div>
+
+    <div class="controls">
+        <button onclick="hit()">Hit</button>
+        <button onclick="stand()">Stand</button>
+    </div>
+
+    <div id="status" class="status"></div>
+    <div id="score" class="status">
+        <p>Your Score: <span id="player-score">0</span></p>
+        <p>Dealer's Score: <span id="dealer-score">0</span></p>
+    </div>
+
+    <button id="play-again" onclick="startGame()">Play Again</button>
+</div>
+
+<script>
+    const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+    const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+    let deck = [];
+    let playerHand = [];
+    let dealerHand = [];
+    let playerScore = 0;
+    let dealerScore = 0;
+    let gameOver = false;
+
+    // Create deck with image URLs
+    function createDeck() {
+        deck = [];
+        for (let suit of suits) {
+            for (let value of values) {
+                const cardCode = getCardCode(value, suit);
+                const imageUrl = `https://deckofcardsapi.com/static/img/${cardCode}.png`;
+                deck.push({ suit, value, imageUrl });
+            }
+        }
+        deck = deck.sort(() => Math.random() - 0.5); // Shuffle deck
+    }
+
+    // Get the card code for Deck of Cards API
+    function getCardCode(value, suit) {
+        const suitCode = {
+            hearts: 'H',
+            diamonds: 'D',
+            clubs: 'C',
+            spades: 'S',
+        };
+        const valueCode = {
+            'A': 'A',
+            'K': 'K',
+            'Q': 'Q',
+            'J': 'J',
+            '10': '0',
+            '9': '9',
+            '8': '8',
+            '7': '7',
+            '6': '6',
+            '5': '5',
+            '4': '4',
+            '3': '3',
+            '2': '2',
+        };
+        return valueCode[value] + suitCode[suit];
+    }
+
+    // Deal a card
+    function dealCard(hand) {
+        const card = deck.pop();
+        hand.push(card);
+        return card;
+    }
+
+    // Calculate card value
+    function getCardValue(card) {
+        if (card.value === 'A') return 11;
+        if (['K', 'Q', 'J'].includes(card.value)) return 10;
+        return parseInt(card.value);
+    }
+
+    // Update scores
+    function updateScores() {
+        playerScore = calculateHandValue(playerHand);
+        dealerScore = calculateHandValue(dealerHand);
+
+        document.getElementById('player-score').textContent = playerScore;
+        document.getElementById('dealer-score').textContent = dealerScore;
+    }
+
+    function calculateHandValue(hand) {
+        let total = hand.reduce((sum, card) => sum + getCardValue(card), 0);
+        let aces = hand.filter(card => card.value === 'A').length;
+        while (total > 21 && aces > 0) {
+            total -= 10;
+            aces--;
+        }
+        return total;
+    }
+
+    // Render hand with images
+    function renderHand(hand, elementId, hideSecondCard = false) {
+    const handElement = document.getElementById(elementId);
+    handElement.innerHTML = ''; // Clear hand
+
+    hand.forEach((card, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.className = 'card';
+        cardElement.style.setProperty('--card-index', index + 1);
+
+        if (hideSecondCard && index === 1) {
+            // Use back of the card image for hidden card
+            cardElement.innerHTML = `<img src="https://deckofcardsapi.com/static/img/back.png" alt="Card Back">`;
+        } else {
+            // Use the actual card image
+            cardElement.innerHTML = `<img src="${card.imageUrl}" alt="${card.value} of ${card.suit}">`;
+        }
+
+        handElement.appendChild(cardElement);
+    });
+}
+
+
+    // Start game
+    function startGame() {
+        createDeck();
+        playerHand = [];
+        dealerHand = [];
+        gameOver = false;
+        document.getElementById('status').textContent = '';
+        document.getElementById('play-again').style.display = 'none';
+
+        dealCard(playerHand);
+        dealCard(dealerHand);
+        dealCard(playerHand);
+        dealCard(dealerHand);
+
+        renderHand(playerHand, 'player-hand');
+        renderHand(dealerHand, 'dealer-hand', true);
+
+        updateScores();
+    }
+
+    function hit() {
+        if (gameOver) return;
+
+        dealCard(playerHand);
+        renderHand(playerHand, 'player-hand');
+        updateScores();
+
+        if (playerScore > 21) {
+            document.getElementById('status').textContent = 'You busted! Dealer wins.';
+            gameOver = true;
+            document.getElementById('play-again').style.display = 'inline';
+        }
+    }
+
+    function stand() {
+        if (gameOver) return;
+
+        renderHand(dealerHand, 'dealer-hand');
+
+        while (dealerScore < 17) {
+            dealCard(dealerHand);
+            renderHand(dealerHand, 'dealer-hand');
+            updateScores();
+        }
+
+        if (dealerScore > 21) {
+            document.getElementById('status').textContent = 'Dealer busted! You win!';
+        } else if (playerScore > dealerScore) {
+            document.getElementById('status').textContent = 'You win!';
+        } else if (playerScore < dealerScore) {
+            document.getElementById('status').textContent = 'Dealer wins!';
+        } else {
+            document.getElementById('status').textContent = 'It\'s a tie!';
+        }
+
+        gameOver = true;
+        document.getElementById('play-again').style.display = 'inline';
+    }
+
+    startGame();
+</script>
+
+</body>
+</html>
